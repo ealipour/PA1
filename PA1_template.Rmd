@@ -1,0 +1,171 @@
+---
+title: "Activity Monitoring Data"
+output: html_document
+keep_md: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(fig.path = "figure/")
+```
+
+### Loading the Data
+The goal of the assignment was to read the data gathered from a personal activity monitor (in a csv file) and 
+
+```{r read_data}
+## read the csv file
+activity <- read.csv("activity.csv")
+summary(activity)
+```
+
+### Steps per day
+To plot the total number of steps in any day, we use hist function after we split the data on the date and add the steps in each split.
+
+```{r histogram}
+##split the data based on the date 
+s <- split(activity, activity$date)
+## and then sum over the number of steps in that date
+y <-sapply(s, function(x) sum(x[,"steps"], na.rm=TRUE))
+
+##given that dates is a factor variable, I am using the levels function to get all the unique values as opposed to unique
+dates <-levels(activity$date)
+
+## and  adataframe of dates and the number of steps
+df<- data.frame(dates,y)
+
+## histogram plot
+hist(y, breaks = 20, xlab="Total steps in a day", ylab="frequency")
+```
+To calculate, mean and median of the steps in each day, we use the following code:
+
+```{r MeanMedian}
+## one can also use (mean(df[,2]), median(df[,2]))
+mean1 <- as.integer(mean(df[,2]))
+median1 <- median(df[,2])
+summary(df[,2])
+```
+showing that median(number_steps) = `r median1` and mean(number_steps)= `r mean1`.
+
+To show the time-series graph, we need to get the data split on the time interval and make a new data.frame called dftime.
+
+### Average daily activity pattern 
+We now split on the interval 
+```{r timeseries}
+stime <- split(activity,activity$interval)
+ytime <- sapply(stime, function(x) mean(x[,"steps"], na.rm=TRUE))
+intervals <- unique(activity$interval)
+dftime<-data.frame(intervals,ytime)
+```
+
+We then use dftime for finding the interval with the maximum average steps, and we will also get the summary on the time series vector we just made:
+
+```{r IntervalMaxAvg}
+
+index <- which(dftime$ytime == max(dftime$ytime,na.rm=T),arr.ind = T)
+dftime[index,1]
+
+summary(dftime$ytime)
+```
+
+Now we plot the time series
+```{r timeseries Plot}
+plot(intervals,ytime,type ="l",lwd=2)
+```
+
+### Imputing Missing values 
+For calculating the missing values entries, we start with counting them
+```{r missing values}
+OK <- sum(is.na(activity))
+OK
+```
+Now to impute the NA values, I am going to use the mean for that 5 minute interval
+```{r NA_imputing}
+activity2<- activity
+activity2$steps <- with(activity2, ave(steps, intervals,
+   FUN = function(x) replace(x, is.na(x), as.integer(mean(x, na.rm = TRUE)))))
+head(activity2)
+```
+The new histogram plot
+```{r histogram2}
+##split the data based on the date 
+s <- split(activity2, activity$date)
+## and then sum over the number of steps in that date
+y <-sapply(s, function(x) sum(x[,"steps"]))
+
+##given that dates is a factor variable, I am using the levels function to get all the unique values as opposed to unique
+dates <-levels(activity2$date)
+
+## and  adataframe of dates and the number of steps
+df2<- data.frame(dates,y)
+
+## histogram plot
+hist(y, breaks = 20, xlab="Total steps in a day", ylab="frequency")
+
+newmedian <- median(y)
+newmean <- as.integer(mean(y))
+```
+
+Showing that now the new mean `r newmean` and the new median is `r newmedian`, which are different than the values calculated earlier. The impact of this particular method is
+```{r impact}
+meanimpact <- (newmean -mean1)/mean1 *100
+medianimpact <- (newmedian-median1)/median1 *100
+```
+showing that the impact of my method of imputation on the mean calculation is `r meanimpact`% and on the median calculation is `r medianimpact`%.
+
+### Difference between weekdays and weekends
+To find the activity level variation between weekdays and weekends, we add a column of weekday/weekend values to the new data frame (activity2).
+```{r weekend}
+activity2$dayend <- "placeholder"
+#Note that date is a factor level so I changed it to class Date to use the weekdays function on it 
+activity2$dayend <- ifelse (weekdays(as.Date(activity2$date)) %in% c("Saturday","Sunday"), "Weekend","Weekday")
+activity2$dayend <- as.factor(activity2$dayend)
+head(activity2)
+```
+And we now plot them
+
+```{r weekday/end patterns}
+## split based on two columns
+activityend <- activity2[ which(activity2$dayend =="Weekend"), ]
+send <- split(activityend,activityend$interval)
+yend <- sapply(send, function(x) mean(x[,"steps"]))
+yend
+
+
+
+activityday <- activity2[ which(activity2$dayend =="Weekday"), ]
+sday <- split(activityday,activityday$interval)
+yday <- sapply(sday, function(x) mean(x[,"steps"]))
+
+##plotting
+par(mfrow=c(1,2))
+plot(intervals, yend, main="Weekend time series",type="l",lwd=2, xlab="time intervals", ylab="avg steps")
+plot(intervals,yday, main="Weekday time series",type ="l",lwd=2, xlab="time intervals", ylab="avg steps")
+```
+
+It seems the patterns are quite different. While in weekdays, the biggest peak is at the morning commute time, on the weekends the pattern is more widespread, with many peaks throughout the waking hours.  Both sets have the lowest values at the midnigh-5:00 AM period (000-500 intervals).
+
+
+
+```{r mineonly, echo=FALSE}
+# library(data.table)
+# DT <- as.data.table(activity)
+#setkey(DT,date) 
+#DT <- DT[,steps := ifelse(is.na(steps), median(steps, na.rm=TRUE), steps), by=date]
+#DT[, steps := replace(steps, is.na(steps),  as.integer(median(steps, na.rm = TRUE))), by =date]
+
+# for (i in 1:n){
+#      if(is.na(DT[i,"steps"])){
+#           datei <- DT[i,"date"]
+#           DT[i,"steps"]<- df[which(datei==)]}
+# }
+# head(DT)
+#library(dplyr)
+#activity2 <- left_join(activity, df, by=c("date"="dates"))
+#head(activity2, n=20)
+
+#activity$steps=ifelse(is.na(activity$steps),mean(activity$steps(mean(activity$steps,na.rm=T),activity$steps))
+
+
+## split based on two columns
+#send <- split(activity2,list(activity2$interval,activity2$dayend))
+```
