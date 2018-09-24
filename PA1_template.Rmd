@@ -146,26 +146,3 @@ It seems the patterns are quite different. While in weekdays, the biggest peak i
 
 
 
-```{r mineonly, echo=FALSE}
-# library(data.table)
-# DT <- as.data.table(activity)
-#setkey(DT,date) 
-#DT <- DT[,steps := ifelse(is.na(steps), median(steps, na.rm=TRUE), steps), by=date]
-#DT[, steps := replace(steps, is.na(steps),  as.integer(median(steps, na.rm = TRUE))), by =date]
-
-# for (i in 1:n){
-#      if(is.na(DT[i,"steps"])){
-#           datei <- DT[i,"date"]
-#           DT[i,"steps"]<- df[which(datei==)]}
-# }
-# head(DT)
-#library(dplyr)
-#activity2 <- left_join(activity, df, by=c("date"="dates"))
-#head(activity2, n=20)
-
-#activity$steps=ifelse(is.na(activity$steps),mean(activity$steps(mean(activity$steps,na.rm=T),activity$steps))
-
-
-## split based on two columns
-#send <- split(activity2,list(activity2$interval,activity2$dayend))
-```
